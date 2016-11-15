@@ -24,8 +24,6 @@ public class CYZScrollerView extends ViewGroup {
     private float mXLastMove;
     private int leftBorder;
     private int rightBorder;
-    private int orginScrollX;
-    private int orginScrollY;
 
     public CYZScrollerView(Context context) {
         super(context);
@@ -40,8 +38,6 @@ public class CYZScrollerView extends ViewGroup {
     private void initView() {
         mScroller = new Scroller(getContext());
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
-        orginScrollX = getScrollX();
-        orginScrollY = getScrollY();
         setClickable(true);
     }
 

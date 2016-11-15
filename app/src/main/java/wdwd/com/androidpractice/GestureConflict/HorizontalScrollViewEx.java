@@ -94,6 +94,8 @@ public class HorizontalScrollViewEx extends ViewGroup {
             case MotionEvent.ACTION_UP:
                 intercepted = false;
                 break;
+            default:
+                break;
         }
 
         lastInterceptX = xDown;
@@ -105,7 +107,6 @@ public class HorizontalScrollViewEx extends ViewGroup {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int xMove = (int) event.getX();
-        int yMove = (int) event.getY();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 Log.i(TAG, "onTouchEvent down");
@@ -137,6 +138,8 @@ public class HorizontalScrollViewEx extends ViewGroup {
                 int dx = mChildIndex * childWidth - scrollX;
                 smoothScrollBy(dx, 0);
                 mVelocityTracker.clear();
+                break;
+            default:
                 break;
         }
 
