@@ -1,0 +1,249 @@
+ViewDragHelper 是一个用来自定义ViewGroup的工具类，它提供了大量的有用的操作和状态跟踪允许用户去拖视图和重新定位在他们的父ViewGroup中
+
+一个空的或者无效的手指id
+INVALID_POINTER = -1;
+
+一个view不是当前开始被拖动或者作为甩或者折断动画的结果
+STATE_IDLE
+
+一个View 是正在被拖动，这个位置作为用户输入或者模拟用户输入改变的结果
+STATE_DRAGGING
+
+一个view 被放置作为甩或者预先没有交互的的手势的结果
+STATE_SETTLING
+
+
+边缘标识，标志左边应该受到影响
+EDGE_LEFT
+
+边缘标识，指示右边受到影响
+EDGE_RIGHT
+
+边缘标识，指示顶部收到影响
+EDGE_TOP
+
+边缘标识，指示底部受到影响
+EDGE_BOTTOM
+
+边缘标识，指示所有边缘受到影响
+EDGE_ALL
+
+水平轴上检查指示
+DIRECTION_HORIZONTAL
+
+垂直轴上检查指示
+DIRECTION_VERTICAL
+
+
+所有方向的指示
+DIRECTION_ALL
+
+边缘大小 20dp
+EDGE_SIZE
+
+下沉的时间
+BASE_SETTLE_DURATION
+
+最大下沉时间
+MAX_SETTLE_DURATION
+
+一个回调用来作为和ViewDraghelper的通信通道返回给父视图使用，
+
+当拖动状态改变将被调用，查看 STATE 常量
+onViewDragStateChanged(int state)
+
+当捕获的视图位置作为拖动或者下沉的结果被改变
+onViewPositionChanged
+
+当子视图被捕获用来拖动或者下沉将被调用，id是当前拖动手指提供
+onViewCaptured(View capturedChild,int activePointerId) {}
+
+当子视图不再被拖动将被调用，也提供甩的速率，如果相关的话。这个速度值可能夹系统最小值或者最大值
+调用代码决定甩或者其他释放视图到视图去使它下沉，应该使用 settleCapturedViewAt(int,int)
+或者使用 flingCapturedView(int s,int,int,int) ,如果回调调用其中一个方法,ViewDragHelper将
+要进入 STATE_SETTLING 并且视图捕获将不会全部结束直到它进入到一个完整的结束
+如果这些方法 在onVewRelease返回之前调用
+视图将要停止ViewDragHelper 将要返回STATE_IDLE
+onViewReleased(View releasedChild,float xvel,float yvel){}
+
+当其中一个监听边缘在父视图被用户触摸调用并且当前没有子视图捕获
+onEdgeTouched(int edgeFlags,int pointerId){}
+
+
+当给的边缘将要被锁定，这个将发生在如果一个拖动边缘初步拒绝在开始之前
+onEdgeLock（int edgeFlags）{return false};
+
+当用户开始故意其中一个订阅的边缘在父类在父类视图拖动离开,而当前捕获没有捕获子视图
+onEdgeDragStated(int edgeFlags , int pointerId){}
+
+
+确定子视图的顺序
+getOrderedChildIndex(int index){return index;}
+
+返回一个用像素表示的可拖动子视图的水平方向运动范围
+getViewHorizontalDragRange(View child){ return 0;}
+
+返回一个用像素标识的可拖动子视图垂直方向运动范围
+getViewVerticalDragRange(View child){return 0;}
+
+
+当用户的输入标识他们想要捕获给子视图用坐标标识的ID将被调用，回调应该返回true 如果用户被允许图拖动这个View和这个标识的Pointer
+tryCaptureView(View child,int pointerId);
+
+限制拖动的子视图在水平方向的运动,默认执行不允许水平方向运动，扩展类必须覆盖这个方法并且提供所需的夹紧力
+clampViewPositionHorizontal(View child,int left,int dx){return 0;}
+
+限制拖动的子视图在垂直方向的运动，默认执行不允许垂直方向运动，扩张类必须覆盖这个干法并且提供所需的加紧力
+clampViewPositionVertical(View child,int top,int dy) {return 0;}
+
+创建一个新ViewDragHelper的工厂方法
+sensitivity 灵敏度的乘数，帮助检测开始拖动，超大值更灵敏，1.0 是普通。
+create(ViewGroup forParent, flat sensitivity,Callback cb)
+
+判断如果这个父类提供的事件 onInterceptTouchEvent 应该导致父类拦截触摸刘
+shouldInterceptTouchEvent
+
+
+shouldInterceptTouchEvent(MotionEvent ev){
+    if(action == MotionEvent.ACTION_DOWN){
+    // 为新的事件流重置事情，仅仅在我们没有得到整个上个流
+      clearMotionHistory();
+      mVelocityTracker.recycle()  null
+    }
+
+    switch(action){
+        case ACTION_DOWN:
+            saveInitialMotion(flat x,flat y,int pointerId);
+
+            if(mDragState == State_SETTLING && topCapture == mCapturedView){
+              tryCaptureViewForDrag(topCapture,pointerId);
+            }
+
+             if((edgesTouched & mTrackingEdges) != 0){
+                mCallback.onEdgeTouched(edgesTouched & mTrackingEdges,pointerId);
+             }
+        break;
+
+        case ACTION_MOVE
+
+            if(pastSlop){
+                boolean isInRange = isInRange();
+                if(!isInDragRange){
+                    break;
+                }
+            }
+            reportNewEdgeDrags(dx,dy,pointerId);
+            if(mDragState == STATE_DRAGGING){
+                break;
+            }
+
+           if(pastSlop && tryCaptureViewDrag(topCapture,pointer)){
+                break;
+            }
+            saveLastMotion(ev);
+        break;
+
+        case ACTION_UP:
+          cancel();
+        break;
+
+    }
+
+    return mDragState == STATE_DRAGGING:
+}
+
+
+processTouchEvent(MotionEvent ev){
+
+  if(action == MotionEvent.ACTION_DOWN){
+    cancel();
+  }
+
+  switch(action){
+    case ACTION_DOWN:
+        saveInitialMotion();
+
+        tryCaptureViewForDrag();
+        mCallback.onEdgeTouched();
+    break
+    case ACTION_MOVE:
+            if(mDragState == STATE_DRAGGING){
+                 dragTo(capturedView.getLeft()+ids,capturedView.getTop() +idy,idx,idy);
+                  saveLastMotion(ev);
+            }else{
+                    reportNewEdgeDrags();
+
+                   if(mDragState == STATE_DRAGGING){
+                        break;
+                    }
+
+                    if(checkTouchSlop(toCapture,dx,dy) && tryCaptureViewForDrag(topCapture,pointerId)){
+                        break;
+                    }
+            }
+            saveLastMotion(ev);
+    break
+    case ACTION_UP:
+      if(mDragState == STATE_DRAGGING){
+        releaseViewForPointerUP();
+      }
+    break
+  }
+}
+
+
+尝试去捕获视图用给的手指id，回调将被调用。这将是我们进入拖动状态， 如果我们已经捕获这个view用给定的指针编号这个方法将直接返回true不包含
+咨询回调
+tryCaptureViewForDrag(View topCapture,int pointerId){
+   if(topCapture != null && mCallBack.tryCaptureView(topCapture,pointerId)){
+        mActivePointerId = pointerId;
+        captureChildView(topCapture,pointerId);
+        return true;
+   }
+   return false;
+}
+
+
+reportNewEdgeDrags(float dx,flat dy,int pointerId){
+    checkNewEdgeDrag(dx,dy,EDGE);
+
+   if(dragsStarted != 0){
+       mEdgeDragsInProgress[pointerId] |= dragsStarted;
+       mCallBack.onEdgeDragStarted(dragsStarted,pointerId);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

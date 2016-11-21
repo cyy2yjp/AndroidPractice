@@ -15,19 +15,27 @@
         android:layout_height="match_parent"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/queen_button"
+        <LinearLayout
+            android:id="@+id/lv_root"
             android:layout_width="match_parent"
-            android:layout_height="100dip" />
+            android:layout_height="match_parent"
+            android:background="@android:color/white"
+            android:orientation="vertical">
 
-        <View
-            android:id="@+id/queen_bottom"
-            android:layout_width="100dip"
-            android:layout_height="100dip"
-            android:layout_below="@+id/queen_button"
-            android:background="@color/colorAccent">
+            <Button
+                android:id="@+id/queen_button"
+                android:layout_width="match_parent"
+                android:layout_height="100dip" />
 
-        </View>
+            <View
+                android:id="@+id/queen_bottom"
+                android:layout_width="100dip"
+                android:layout_height="100dip"
+                android:layout_below="@+id/queen_button"
+                android:background="@color/colorAccent">
+
+            </View>
+        </LinearLayout>
     </wdwd.com.androidpractice.ViewHelper.QuterLayout>
 
 </RelativeLayout>

@@ -10,7 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.Toast;
+import android.widget.FrameLayout;
 
 import wdwd.com.androidpractice.R;
 
@@ -18,7 +18,7 @@ import wdwd.com.androidpractice.R;
  * Created by tomchen on 16/11/17.
  */
 
-public class QuterLayout extends ViewGroup {
+public class QuterLayout extends FrameLayout {
 
     private static final int MIN_FLING_VELOCITY = 1000; //dips per second
     private final double AUTO_OPEN_SPEED_LIMIT = 800.0;
@@ -35,7 +35,7 @@ public class QuterLayout extends ViewGroup {
     private int mTop;
     private int mDragRange;
 
-
+    //    private View rootView;
     public QuterLayout(Context context) {
         super(context);
         init();
@@ -48,7 +48,6 @@ public class QuterLayout extends ViewGroup {
 
     private void onStopDraggingToClosed() {
         //To be implemented
-        Toast.makeText(getContext(), "onStopDraggingToClosed", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -67,14 +66,7 @@ public class QuterLayout extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-//        int parentViewHeight = getHeight();
-//        int dragViewHeight = headerView.getMeasuredHeight();
-//        mDragRange = parentViewHeight - dragViewHeight;
-//        if(changed){
-        headerView.layout(0, mTop, r, mTop + headerView.getMeasuredHeight());
-//
-        bottomView.layout(0, mTop + headerView.getMeasuredHeight(), r, mTop + b);
-//        }
+        super.onLayout(changed, l, t, r, b);
     }
 
     @Override
@@ -82,8 +74,15 @@ public class QuterLayout extends ViewGroup {
 
         headerView = findViewById(R.id.queen_button);
         bottomView = findViewById(R.id.queen_bottom);
+//        rootView = ((Activity)getContext()).getWindow().getDecorView().getRootView();
         final float density = getContext().getResources().getDisplayMetrics().density;
 //        mQueenButton = (Button) findViewById(R.id.queen_button);
+//        Activity activity = (Activity) getContext();
+//        ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
+//        View rootView = decorView.getChildAt(0);
+//        decorView.removeView(rootView);
+//        this.addView(rootView);
+//        decorView.addView(this);
         mViewDragHelper = ViewDragHelper.create(this, 1.0f, new DragHelperCallback(this));
         mViewDragHelper.setEdgeTrackingEnabled(ViewDragHelper.EDGE_LEFT);
         mViewDragHelper.setMinVelocity(MIN_FLING_VELOCITY * density);
@@ -93,7 +92,7 @@ public class QuterLayout extends ViewGroup {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        mVerticalRange = h - headerView.getMeasuredHeight();
+        mVerticalRange = h;
         super.onSizeChanged(w, h, oldw, oldh);
     }
 
@@ -118,11 +117,11 @@ public class QuterLayout extends ViewGroup {
             return false;
         }
 
-        if (isQueenTarget(ev) || isMoving()) {
+//        if (isQueenTarget(ev) || isMoving()) {
             return mViewDragHelper.shouldInterceptTouchEvent(ev);
-        } else {
-            return super.onInterceptTouchEvent(ev);
-        }
+//        } else {
+//            return super.onInterceptTouchEvent(ev);
+//        }
     }
 
     private boolean isMoving() {
@@ -131,12 +130,12 @@ public class QuterLayout extends ViewGroup {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (isQueenTarget(event) || isMoving()) {
+//        if (isQueenTarget(event) || isMoving()) {
             mViewDragHelper.processTouchEvent(event);
             return true;
-        } else {
-            return super.onTouchEvent(event);
-        }
+//        } else {
+//            return super.onTouchEvent(event);
+//        }
     }
 
     @Override
@@ -192,14 +191,12 @@ public class QuterLayout extends ViewGroup {
             super.onViewPositionChanged(changedView, left, top, dx, dy);
             mTop = top;
             mDraggingBorder = top;
-
-//            mDragOffset = (float) top / mDragRange;
+            mDragOffset = (float) top / mDragRange;
 //            headerView.setPivotX(headerView.getWidth());
 //            headerView.setPivotY(headerView.getHeight());
 //            headerView.setScaleX(1 - mDragOffset / 2);
 //            headerView.setScaleY(1 - mDragOffset / 2);
-
-            requestLayout();
+//            requestLayout();
         }
 
         @Override
@@ -254,7 +251,7 @@ public class QuterLayout extends ViewGroup {
         @Override
         public void onEdgeDragStarted(int edgeFlags, int pointerId) {
             super.onEdgeDragStarted(edgeFlags, pointerId);
-//            mViewDragHelper.captureChildView(,pointerId);
+            mViewDragHelper.captureChildView(findViewById(R.id.lv_root), pointerId);
         }
 
         @Override
@@ -269,25 +266,26 @@ public class QuterLayout extends ViewGroup {
 
         @Override
         public int getViewVerticalDragRange(View child) {
-            return mVerticalRange;
+            return getMeasuredHeight();
         }
 
         @Override
         public int clampViewPositionHorizontal(View child, int left, int dx) {
             Log.d("DragLayout", "clampViewPositionHorizontal" + left + "," + dx);
-            final int leftBound = self.getPaddingLeft();
-            final int rightBound = self.getWidth() - child.getWidth();
-            final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
-            return newLeft;
+//            final int leftBound = self.getPaddingLeft();
+//            final int rightBound = self.getWidth() - child.getWidth();
+//            final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
+            return 0;
         }
 
         @Override
         public int clampViewPositionVertical(View child, int top, int dy) {
-            Log.d("DragLayout", "clampViewPositionHorizontal" + top + "," + dy);
-            int topBound = self.getPaddingTop();
-//            int bottomBound = mVerticalRange;
-            int bottomBound = getHeight() - headerView.getHeight() - headerView.getPaddingBottom();
-            final int newTop = Math.min(Math.max(topBound, top), bottomBound);
+//            Log.d("DragLayout", "clampViewPositionHorizontal" + top + "," + dy);
+//            int topBound = self.getPaddingTop();
+////            int bottomBound = mVerticalRange;
+//            int bottomBound = getHeight() - headerView.getHeight() - headerView.getPaddingBottom();
+//            final int newTop = Math.min(Math.max(topBound, top), bottomBound);
+            int newTop = top > 0 ? top : 0;
             return newTop;
         }
     }
