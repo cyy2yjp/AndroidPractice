@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.FrameLayout;
 
 import wdwd.com.androidpractice.R;
@@ -24,8 +23,6 @@ public class QuterLayout extends FrameLayout {
     private final double AUTO_OPEN_SPEED_LIMIT = 800.0;
     private ViewDragHelper mViewDragHelper;
     private int mDraggingState = 0;
-    private Button mQueenButton;
-    private ViewDragHelper mDragHelper;
     private int mDraggingBorder;
     private int mVerticalRange;
     private boolean mIsOpen;
@@ -55,12 +52,9 @@ public class QuterLayout extends FrameLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         measureChildren(widthMeasureSpec, heightMeasureSpec);
-
         int maxWidth = MeasureSpec.getSize(widthMeasureSpec);
         int maxHeight = MeasureSpec.getSize(heightMeasureSpec);
-
         setMeasuredDimension(resolveSizeAndState(maxWidth, widthMeasureSpec, 0), resolveSizeAndState(maxHeight, heightMeasureSpec, 0));
-
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
@@ -71,18 +65,9 @@ public class QuterLayout extends FrameLayout {
 
     @Override
     protected void onFinishInflate() {
-
         headerView = findViewById(R.id.queen_button);
         bottomView = findViewById(R.id.queen_bottom);
-//        rootView = ((Activity)getContext()).getWindow().getDecorView().getRootView();
         final float density = getContext().getResources().getDisplayMetrics().density;
-//        mQueenButton = (Button) findViewById(R.id.queen_button);
-//        Activity activity = (Activity) getContext();
-//        ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
-//        View rootView = decorView.getChildAt(0);
-//        decorView.removeView(rootView);
-//        this.addView(rootView);
-//        decorView.addView(this);
         mViewDragHelper = ViewDragHelper.create(this, 1.0f, new DragHelperCallback(this));
         mViewDragHelper.setEdgeTrackingEnabled(ViewDragHelper.EDGE_LEFT);
         mViewDragHelper.setMinVelocity(MIN_FLING_VELOCITY * density);
@@ -117,11 +102,7 @@ public class QuterLayout extends FrameLayout {
             return false;
         }
 
-//        if (isQueenTarget(ev) || isMoving()) {
-            return mViewDragHelper.shouldInterceptTouchEvent(ev);
-//        } else {
-//            return super.onInterceptTouchEvent(ev);
-//        }
+        return mViewDragHelper.shouldInterceptTouchEvent(ev);
     }
 
     private boolean isMoving() {
@@ -130,12 +111,8 @@ public class QuterLayout extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-//        if (isQueenTarget(event) || isMoving()) {
-            mViewDragHelper.processTouchEvent(event);
-            return true;
-//        } else {
-//            return super.onTouchEvent(event);
-//        }
+        mViewDragHelper.processTouchEvent(event);
+        return true;
     }
 
     @Override
@@ -239,7 +216,6 @@ public class QuterLayout extends FrameLayout {
         @Override
         public void onEdgeTouched(int edgeFlags, int pointerId) {
             super.onEdgeTouched(edgeFlags, pointerId);
-//            Toast.makeText(self.getContext(), "edgeTouched", Toast.LENGTH_SHORT).show();
 
         }
 
@@ -251,7 +227,7 @@ public class QuterLayout extends FrameLayout {
         @Override
         public void onEdgeDragStarted(int edgeFlags, int pointerId) {
             super.onEdgeDragStarted(edgeFlags, pointerId);
-            mViewDragHelper.captureChildView(findViewById(R.id.lv_root), pointerId);
+//            mViewDragHelper.captureChildView(findViewById(R.id.lv_root), pointerId);
         }
 
         @Override
@@ -272,19 +248,11 @@ public class QuterLayout extends FrameLayout {
         @Override
         public int clampViewPositionHorizontal(View child, int left, int dx) {
             Log.d("DragLayout", "clampViewPositionHorizontal" + left + "," + dx);
-//            final int leftBound = self.getPaddingLeft();
-//            final int rightBound = self.getWidth() - child.getWidth();
-//            final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
             return 0;
         }
 
         @Override
         public int clampViewPositionVertical(View child, int top, int dy) {
-//            Log.d("DragLayout", "clampViewPositionHorizontal" + top + "," + dy);
-//            int topBound = self.getPaddingTop();
-////            int bottomBound = mVerticalRange;
-//            int bottomBound = getHeight() - headerView.getHeight() - headerView.getPaddingBottom();
-//            final int newTop = Math.min(Math.max(topBound, top), bottomBound);
             int newTop = top > 0 ? top : 0;
             return newTop;
         }
