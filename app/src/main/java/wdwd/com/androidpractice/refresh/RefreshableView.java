@@ -6,18 +6,24 @@ import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
-import android.view.animation.RotateAnimation;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import wdwd.com.androidpractice.R;
+
+import static wdwd.com.androidpractice.refresh.Constant.ONE_DAY;
+import static wdwd.com.androidpractice.refresh.Constant.ONE_HOUR;
+import static wdwd.com.androidpractice.refresh.Constant.ONE_MINUTE;
+import static wdwd.com.androidpractice.refresh.Constant.ONE_MONTH;
+import static wdwd.com.androidpractice.refresh.Constant.ONE_YEAR;
+import static wdwd.com.androidpractice.refresh.Constant.SCROLL_SPEED;
+import static wdwd.com.androidpractice.refresh.Constant.STATUS_PULL_TO_REFRESH;
+import static wdwd.com.androidpractice.refresh.Constant.STATUS_REFRESHING;
+import static wdwd.com.androidpractice.refresh.Constant.STATUS_REFRESH_FINISHED;
+import static wdwd.com.androidpractice.refresh.Constant.STATUS_RELEASE_TO_REFRESH;
+import static wdwd.com.androidpractice.refresh.Constant.UPDATED_AT;
 
 /**
  * Created by tomchen on 16/11/23.
@@ -25,50 +31,7 @@ import wdwd.com.androidpractice.R;
 
 public class RefreshableView extends LinearLayout implements View.OnTouchListener {
 
-    /**
-     * 下拉状态
-     */
-    public static final int STATUS_PULL_TO_REFRESH = 0;
-    /**
-     * 释放立即刷新状态
-     */
-    public static final int STATUS_RELEASE_TO_REFRESH = 1;
-    /**
-     * 正在刷新状态
-     */
-    public static final int STATUS_REFRESHING = 2;
-    /**
-     * 刷新完成或未刷新状态
-     */
-    public static final int STATUS_REFRESH_FINISHED = 3;
-    /**
-     * 下拉头部回滚速度
-     */
-    public static final int SCROLL_SPEED = -20;
-    /**
-     * 一分钟的毫秒值，用于判断上次的更新时间
-     */
-    public static final int ONE_MINUTE = 60 * 1000;
-    /**
-     * 一小时的毫秒值，用于判断你上次的更新时间
-     */
-    public static final long ONE_HOUR = 60 * ONE_MINUTE;
-    /**
-     * 一天的毫秒值，用于判断上次的更新时间
-     */
-    public static final long ONE_DAY = 24 * ONE_HOUR;
-    /**
-     * 一月的毫秒值，用于判断上次的更新时间
-     */
-    public static final long ONE_MONTH = 30 * ONE_DAY;
-    /**
-     * 一年的毫秒，用于判断上次的更新时间
-     */
-    public static final long ONE_YEAR = 12 * ONE_MONTH;
-    /**
-     * 上次更新时间的字符常量，用于作为SharedPreferences的键值
-     */
-    public static final String UPDATED_AT = "updated_at";
+
     private static final String TAG = "RefreshableView";
     /**
      * 用于存储上次更新时间
@@ -76,51 +39,9 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     private SharedPreferences preferences;
 
     /**
-     * 下拉的View
-     */
-    private View header;
-
-    /**
-     * 指示箭头
-     */
-    private ImageView arrow;
-
-    /**
      * 需要下拉刷新的ListView
      */
     private ListView listView;
-
-    /**
-     * 刷新时显示的进度条
-     */
-    private ProgressBar progressBar;
-
-    /**
-     * 指示下拉和释放的文字描述
-     */
-    private TextView description;
-
-    /**
-     * 上次更新的文字描述
-     */
-    private TextView updateAt;
-
-    /**
-     * 下拉头的布局参数
-     */
-    private MarginLayoutParams headerLayoutParams;
-
-    /**
-     * 上次更新时间的毫秒值
-     */
-    private long lastUpdateTime;
-
-    private int mId = -1;
-
-    /**
-     * 下拉头的高度
-     */
-    private int hideHeaderHeight;
 
     /**
      * 当前处理什么状态，可选址有STATUS_PULL_TO_REFRESH,STATUS_RELEASE_TO_REFRESH
@@ -132,10 +53,12 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
      */
     private boolean loadOnce;
     /**
-     *
+     * 上次更新时间的毫秒值
      */
-    private int touchSlop;
+    private long lastUpdateTime;
 
+    private BaseLoadLayout header;
+    private int mId = -1;
     /**
      * 当前是否可以下拉，只有listView 滚动到头的时候才允许下拉
      */
@@ -164,16 +87,13 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     }
 
     private void init() {
+        header = new BaseLoadLayout();
         preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        header = LayoutInflater.from(getContext()).inflate(R.layout.pull_torefresh, null, true);
-        progressBar = (ProgressBar) header.findViewById(R.id.progress_bar);
-        arrow = (ImageView) header.findViewById(R.id.arrow);
-        description = (TextView) header.findViewById(R.id.description);
-        updateAt = (TextView) header.findViewById(R.id.updated_at);
-        touchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        header.mapView(getContext());
+
         refreshUpdatedAtValue();
         setOrientation(VERTICAL);
-        addView(header, 0);
+        addView(header.getView(), 0);
     }
 
     @Override
@@ -187,27 +107,18 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
                 case MotionEvent.ACTION_MOVE:
                     float yMove = event.getRawY();
                     int distance = (int) (yMove - yDown);
-                    //如果手指是下滑状态，并且下拉头是完全隐藏的，就屏蔽下拉事件
-                    if (distance <= 0 && headerLayoutParams.topMargin <= hideHeaderHeight) {
-                        Log.i(TAG, "topMargin <= hideHeaderHeight");
-                        return false;
-                    } else if (distance < touchSlop) {
-                        Log.i(TAG, "distance <= touchSlop");
+                    if (!header.processEvent(distance)) {
                         return false;
                     }
-
                     Log.i(TAG, "currentStatus" + currentStatus);
-                    if (currentStatus != STATUS_REFRESHING) {
-
-                        if (headerLayoutParams.topMargin > 0) {
+                    if (currentStatus != Constant.STATUS_REFRESHING) {
+                        if (header.getTopMargin() > 0) {
                             currentStatus = STATUS_RELEASE_TO_REFRESH;
                         } else {
                             currentStatus = STATUS_PULL_TO_REFRESH;
                         }
-
                         //通过偏移下拉头的topMargin值，来实现下拉效果
-                        headerLayoutParams.topMargin = (distance / 2) + hideHeaderHeight;
-                        header.setLayoutParams(headerLayoutParams);
+                        header.updateViewMargin((distance / 2) + header.getViewHeight());
                     }
                     break;
                 case MotionEvent.ACTION_UP:
@@ -253,10 +164,7 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
                 //如果首个元素的上边缘，距离父布局值为0，就说明listView 滚动到了最顶部，此时应该允许下拉刷新
                 ableToPull = true;
             } else {
-                if (headerLayoutParams.topMargin != hideHeaderHeight) {
-                    headerLayoutParams.topMargin = hideHeaderHeight;
-                    header.setLayoutParams(headerLayoutParams);
-                }
+                header.close();
                 ableToPull = false;
             }
         } else {
@@ -267,43 +175,9 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
 
     private void updateHeaderView() {
         if (lastStatus != currentStatus) {
-            if (currentStatus == STATUS_PULL_TO_REFRESH) {
-                description.setText(getResources().getString(R.string.pull_to_refresh));
-                arrow.setVisibility(View.VISIBLE);
-                progressBar.setVisibility(View.GONE);
-                rotateArrow();
-            } else if (currentStatus == STATUS_RELEASE_TO_REFRESH) {
-                description.setText(getResources().getString(R.string.release_to_refresh));
-                arrow.setVisibility(View.VISIBLE);
-                progressBar.setVisibility(View.GONE);
-                rotateArrow();
-            } else if (currentStatus == STATUS_REFRESHING) {
-                description.setText(getResources().getString(R.string.refreshing));
-                progressBar.setVisibility(View.VISIBLE);
-                arrow.clearAnimation();
-                arrow.setVisibility(GONE);
-            }
+            header.updateView(currentStatus);
             refreshUpdatedAtValue();
         }
-    }
-
-    private void rotateArrow() {
-        float pivotX = arrow.getWidth() / 2f;
-        float pivotY = arrow.getHeight() / 2f;
-        float fromDegrees = 0f;
-        float toDegrees = 0f;
-        if (currentStatus == STATUS_PULL_TO_REFRESH) {
-            fromDegrees = 180f;
-            toDegrees = 360f;
-        } else if (currentStatus == STATUS_RELEASE_TO_REFRESH) {
-            fromDegrees = 0f;
-            toDegrees = 180f;
-        }
-
-        RotateAnimation animation = new RotateAnimation(fromDegrees, toDegrees, pivotX, pivotY);
-        animation.setDuration(100);
-        animation.setFillAfter(true);
-        arrow.startAnimation(animation);
     }
 
     /**
@@ -314,9 +188,8 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         super.onLayout(changed, l, t, r, b);
         if (changed && !loadOnce) {
             Log.i(TAG, "onLayout()");
-            hideHeaderHeight = -header.getHeight();
-            headerLayoutParams = (MarginLayoutParams) header.getLayoutParams();
-            headerLayoutParams.topMargin = hideHeaderHeight;
+            header.initViewSize();
+
             listView = (ListView) getChildAt(1);
             listView.setOnTouchListener(this);
             loadOnce = true;
@@ -352,7 +225,7 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
             String value = timeIntoFormat + "年";
             updateAtValue = String.format(getResources().getString(R.string.updated_at), value);
         }
-        updateAt.setText(updateAtValue);
+        header.setUpdateTimeText(updateAtValue);
     }
 
     public PullToRefreshListener getListener() {
@@ -377,7 +250,7 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
 
         @Override
         protected Void doInBackground(Void... params) {
-            int topMargin = headerLayoutParams.topMargin;
+            int topMargin = header.getTopMargin();
             while (true) {
                 topMargin = topMargin + SCROLL_SPEED;
                 if (topMargin <= 0) {
@@ -404,8 +277,7 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         protected void onProgressUpdate(Integer... topMargin) {
             super.onProgressUpdate(topMargin);
             updateHeaderView();
-            headerLayoutParams.topMargin = topMargin[0];
-            header.setLayoutParams(headerLayoutParams);
+            header.updateViewMargin(topMargin[0]);
         }
     }
 
@@ -413,11 +285,11 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
 
         @Override
         protected Integer doInBackground(Void... params) {
-            int topMargin = headerLayoutParams.topMargin;
+            int topMargin = header.getTopMargin();
             while (true) {
                 topMargin = topMargin + SCROLL_SPEED;
-                if (topMargin <= hideHeaderHeight) {
-                    topMargin = hideHeaderHeight;
+                if (topMargin <= header.getViewHeight()) {
+                    topMargin = header.getViewHeight();
                     break;
                 }
                 publishProgress(topMargin);
@@ -433,15 +305,13 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         @Override
         protected void onProgressUpdate(Integer... topMargin) {
             super.onProgressUpdate(topMargin);
-            headerLayoutParams.topMargin = topMargin[0];
-            header.setLayoutParams(headerLayoutParams);
+            header.updateViewMargin(topMargin[0]);
         }
 
         @Override
         protected void onPostExecute(Integer topMargin) {
             super.onPostExecute(topMargin);
-            headerLayoutParams.topMargin = topMargin;
-            header.setLayoutParams(headerLayoutParams);
+            header.updateViewMargin(topMargin);
             currentStatus = STATUS_REFRESH_FINISHED;
         }
     }
