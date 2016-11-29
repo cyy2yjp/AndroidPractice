@@ -1,0 +1,30 @@
+NestedScroll 分析
+
+1，首先childView 开始滚动之前 通知Parent
+startNestedScroll(axes);
+2，parent 根据传递过来的方向和child判断是否进行干涉
+onNestedScroll(axes)
+3，如果进行干涉的话 记录Parent 并且返回true
+
+4,当前child开始滚动时 获得当前 x y 偏移值 传递给Parent
+  dispatchPreNestedScroll(dx,dy,consumed[],windowInOffset[]);
+5,父类根据传递过来的 x y 偏移值 以及已经初始化过的 consumed[] 默认都是 0，0 可以判断是否需要消费 偏移值 如果消费过把消费过的距离记录到 consumed 数组
+
+6，dispatchNestedScroll(dxConsumed,dyConsumed,dxUnconsumed,dyUnconsumed,windowInOffset[]); 通知父类已经消费的，和剩下没有消费的 看父类是否继续消费
+
+7，调用父类的 onNestedScroll(dxConsumed,dyConsumed,dxUnconsumed,dyConsumed,windowInOffset[]); 父类根据情况判断是否需要处理
+
+8，onStopNestedScroll();  清空 parent
+
+SwipeRefreshLayout
+同时具备时 child 和Parent Scroll
+
+如果作为child
+先调用 onInterceptTouchEvent()如果滚动的距离满足条件 进入 onTouchEvent
+
+否则的话调用的是内部view的 onTouch事件
+
+内部view 如果开启了Nested 走嵌套流程
+
+
+

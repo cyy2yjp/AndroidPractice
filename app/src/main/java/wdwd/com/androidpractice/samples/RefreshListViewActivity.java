@@ -42,6 +42,7 @@ public class RefreshListViewActivity extends Activity implements RefreshableView
 
     @Override
     public void onRefresh() {
+
         listView.postDelayed(new Runnable() {
             @Override
             public void run() {

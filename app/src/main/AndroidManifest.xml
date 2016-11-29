@@ -10,7 +10,14 @@
         android:theme="@style/AppTheme">
         <activity android:name=".MainActivity"></activity>
 
-        <activity android:name=".samples.RefreshListViewActivity">
+        <activity android:name=".samples.RefreshListViewActivity"></activity>
+
+        <activity android:name=".samples.NestedScrollActivity"></activity>
+
+        <activity android:name=".samples.NestedNavActivity">
+        </activity>
+
+        <activity android:name=".samples.FluxActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

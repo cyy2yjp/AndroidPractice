@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wdwd.com.androidpractice.Nested.StickNavLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/id_stickynavlayout_topview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#4400ff00">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="256dip"
+            android:gravity="center"
+            android:text="soft ware describe"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dip">
+
+        <TextView
+            android:id="@+id/id_stickynavlayout_indicator"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="zhong zi tou" />
+    </LinearLayout>
+
+    <android.support.v4.view.ViewPager
+        android:id="@id/id_stickynavlayout_viewpager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </android.support.v4.view.ViewPager>
+</wdwd.com.androidpractice.Nested.StickNavLayout>

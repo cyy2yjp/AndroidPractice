@@ -2,7 +2,6 @@ package wdwd.com.androidpractice.refresh;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -18,9 +17,7 @@ import static wdwd.com.androidpractice.refresh.Constant.ONE_HOUR;
 import static wdwd.com.androidpractice.refresh.Constant.ONE_MINUTE;
 import static wdwd.com.androidpractice.refresh.Constant.ONE_MONTH;
 import static wdwd.com.androidpractice.refresh.Constant.ONE_YEAR;
-import static wdwd.com.androidpractice.refresh.Constant.SCROLL_SPEED;
 import static wdwd.com.androidpractice.refresh.Constant.STATUS_PULL_TO_REFRESH;
-import static wdwd.com.androidpractice.refresh.Constant.STATUS_REFRESHING;
 import static wdwd.com.androidpractice.refresh.Constant.STATUS_REFRESH_FINISHED;
 import static wdwd.com.androidpractice.refresh.Constant.STATUS_RELEASE_TO_REFRESH;
 import static wdwd.com.androidpractice.refresh.Constant.UPDATED_AT;
@@ -46,7 +43,7 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     /**
      * 当前处理什么状态，可选址有STATUS_PULL_TO_REFRESH,STATUS_RELEASE_TO_REFRESH
      */
-    private int currentStatus = STATUS_REFRESH_FINISHED;
+    private RefreshStatus currentStatus = new RefreshStatus(STATUS_REFRESH_FINISHED);
 
     /**
      * 是否已加载过一次layout，只有listView滚动到头的时候才允许下拉
@@ -66,10 +63,8 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     /**
      * 记录上一次的状态是什么，避免重复操作
      */
-    private int lastStatus = currentStatus;
+    private RefreshStatus lastStatus = new RefreshStatus(STATUS_REFRESH_FINISHED);
     private float yDown;
-
-    private PullToRefreshListener mListener;
 
     public RefreshableView(Context context) {
         super(context);
@@ -87,7 +82,13 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     }
 
     private void init() {
-        header = new BaseLoadLayout();
+        header = new HeaderLoadLayout();
+        header.setLoadLayoutDelegate(new BaseLoadLayout.LoadLayoutDelegate() {
+            @Override
+            public void updateLoadStatus() {
+                updateHeaderView();
+            }
+        });
         preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         header.mapView(getContext());
 
@@ -99,6 +100,7 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         setIsAbleToPull(event);
+        int value = currentStatus.getValue();
         if (ableToPull) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -107,39 +109,29 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
                 case MotionEvent.ACTION_MOVE:
                     float yMove = event.getRawY();
                     int distance = (int) (yMove - yDown);
-                    if (!header.processEvent(distance)) {
+                    if (!header.processEvent(distance, currentStatus)) {
                         return false;
-                    }
-                    Log.i(TAG, "currentStatus" + currentStatus);
-                    if (currentStatus != Constant.STATUS_REFRESHING) {
-                        if (header.getTopMargin() > 0) {
-                            currentStatus = STATUS_RELEASE_TO_REFRESH;
-                        } else {
-                            currentStatus = STATUS_PULL_TO_REFRESH;
-                        }
-                        //通过偏移下拉头的topMargin值，来实现下拉效果
-                        header.updateViewMargin((distance / 2) + header.getViewHeight());
                     }
                     break;
                 case MotionEvent.ACTION_UP:
                 default:
-                    if (currentStatus == STATUS_RELEASE_TO_REFRESH) {
+                    if (value == STATUS_RELEASE_TO_REFRESH) {
                         //松手时如果是释放立即刷新状态，就去调用正在刷新的任务
-                        new RefreshingTask().execute();
-                    } else if (currentStatus == STATUS_PULL_TO_REFRESH) {
+                        header.showView(currentStatus);
+                    } else if (value == STATUS_PULL_TO_REFRESH) {
                         //松手时如果是下拉状态，就去调用隐藏下拉头的任务
                         onComplete();
                     }
                     break;
             }
-
-            if (currentStatus == STATUS_PULL_TO_REFRESH || currentStatus == STATUS_RELEASE_TO_REFRESH) {
+            value = currentStatus.getValue();
+            if (value == STATUS_PULL_TO_REFRESH || value == STATUS_RELEASE_TO_REFRESH) {
                 updateHeaderView();
                 //当前正出于下拉或释放状态，要让ListView失去焦点，否则被点击的那一项会一直处于选中状态
                 listView.setPressed(false);
                 listView.setFocusable(false);
                 listView.setFocusableInTouchMode(false);
-                lastStatus = currentStatus;
+                lastStatus.setValue(currentStatus.getValue());
                 //当前正处于下拉或释放状态，通过返回true屏蔽掉ListView 的滚动事件
                 return true;
             }
@@ -148,9 +140,9 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
     }
 
     public void onComplete() {
-        currentStatus = STATUS_REFRESH_FINISHED;
+        currentStatus.setValue(STATUS_REFRESH_FINISHED);
         preferences.edit().putLong(UPDATED_AT + mId, System.currentTimeMillis()).commit();
-        new HideHeaderTask().execute();
+        header.hideView(currentStatus);
     }
 
     private void setIsAbleToPull(MotionEvent event) {
@@ -173,9 +165,13 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         }
     }
 
-    private void updateHeaderView() {
-        if (lastStatus != currentStatus) {
-            header.updateView(currentStatus);
+    /**
+     * 更新头部
+     */
+    public void updateHeaderView() {
+        Log.i(TAG, lastStatus.getValue() + "+++" + currentStatus.getValue());
+        if (lastStatus.getValue() != currentStatus.getValue()) {
+            header.updateViewByStatus(currentStatus.getValue());
             refreshUpdatedAtValue();
         }
     }
@@ -189,7 +185,6 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         if (changed && !loadOnce) {
             Log.i(TAG, "onLayout()");
             header.initViewSize();
-
             listView = (ListView) getChildAt(1);
             listView.setOnTouchListener(this);
             loadOnce = true;
@@ -228,12 +223,8 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         header.setUpdateTimeText(updateAtValue);
     }
 
-    public PullToRefreshListener getListener() {
-        return mListener;
-    }
-
     public RefreshableView setListener(PullToRefreshListener mListener, int mId) {
-        this.mListener = mListener;
+        header.setListener(mListener);
         this.mId = mId;
         return this;
     }
@@ -246,73 +237,5 @@ public class RefreshableView extends LinearLayout implements View.OnTouchListene
         void onRefresh();
     }
 
-    private class RefreshingTask extends AsyncTask<Void, Integer, Void> {
 
-        @Override
-        protected Void doInBackground(Void... params) {
-            int topMargin = header.getTopMargin();
-            while (true) {
-                topMargin = topMargin + SCROLL_SPEED;
-                if (topMargin <= 0) {
-                    topMargin = 0;
-                    break;
-                }
-                publishProgress(topMargin);
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            currentStatus = STATUS_REFRESHING;
-            publishProgress(0);
-            if (mListener != null) {
-                mListener.onRefresh();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... topMargin) {
-            super.onProgressUpdate(topMargin);
-            updateHeaderView();
-            header.updateViewMargin(topMargin[0]);
-        }
-    }
-
-    private class HideHeaderTask extends AsyncTask<Void, Integer, Integer> {
-
-        @Override
-        protected Integer doInBackground(Void... params) {
-            int topMargin = header.getTopMargin();
-            while (true) {
-                topMargin = topMargin + SCROLL_SPEED;
-                if (topMargin <= header.getViewHeight()) {
-                    topMargin = header.getViewHeight();
-                    break;
-                }
-                publishProgress(topMargin);
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            return topMargin;
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... topMargin) {
-            super.onProgressUpdate(topMargin);
-            header.updateViewMargin(topMargin[0]);
-        }
-
-        @Override
-        protected void onPostExecute(Integer topMargin) {
-            super.onPostExecute(topMargin);
-            header.updateViewMargin(topMargin);
-            currentStatus = STATUS_REFRESH_FINISHED;
-        }
-    }
 }

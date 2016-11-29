@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <wdwd.com.androidpractice.Nested.NestedParent
+        android:id="@+id/nested_parent"
+        android:layout_width="200dp"
+        android:layout_height="300dip"
+        android:background="@color/colorAccent">
+
+        <wdwd.com.androidpractice.Nested.NestedScrollChildListView
+            android:id="@+id/nested_scroll_child"
+            android:layout_width="100dp"
+            android:layout_height="100dip"
+            android:background="@color/colorPrimary">
+
+        </wdwd.com.androidpractice.Nested.NestedScrollChildListView>
+    </wdwd.com.androidpractice.Nested.NestedParent>
+</LinearLayout>
