@@ -40,8 +40,8 @@ public class Dispatcher {
         stores.remove(store);
     }
 
-    public void dispatch(Action aciton) {
-        post(aciton);
+    public void dispatch(Action action) {
+        post(action);
     }
 
     private void post(final Action action) {

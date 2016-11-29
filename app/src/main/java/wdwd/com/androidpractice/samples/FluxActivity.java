@@ -21,8 +21,8 @@ import wdwd.com.androidpractice.flux.stores.Store;
 
 /**
  * 这部分代码比较多，首先在onCreate() 方法中初始化了依赖和需要的UI组件。最重要的是onStoreChange() 方法，这个方
- * 法是注册在Store中回调（使用EventBus的 @Subscribe 注解标识）,当Store发生改变会触发这个方法，我们在这里调用render()
- * 方法重绘整个界面。
+ * 法是注册在Store中回调（使用EventBus的 @Subscribe 注解标识）,当Store发生改变会触发这个方法，我们在这里调用
+ * render() 方法重绘整个界面。
  * <p>
  * Created by tomchen on 16/11/29.
  */
